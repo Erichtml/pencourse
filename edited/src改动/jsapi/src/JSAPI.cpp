@@ -1,0 +1,41 @@
+#include <jsmodules/JSCModuleExtension.h>
+#include <jquick_config.h>
+#include "AI/JSAI.hpp"
+#include "AI/JSSQLite.hpp"
+#include "IME/JSIME.hpp"
+#include "ScanInput/JSScanInput.hpp"
+#include "Shell/JSShell.hpp"
+#include "Update/JSUpdate.hpp"
+
+using namespace JQUTIL_NS;
+
+static std::vector<std::string> exportList = {
+    "AI",
+    "SQLite",
+    "IME",
+    "ScanInput",
+    "Shell",
+    "Update"
+};
+
+static int module_init(JSContext *ctx, JSModuleDef *m)
+{
+    auto env = JQModuleEnv::CreateModule(ctx, m, "langningchen");
+
+    env->setModuleExport("AI", createAI(env.get()));
+    env->setModuleExport("SQLite", createSQLite(env.get()));   // 新增:通用 sqlite 供 JS 用
+    env->setModuleExport("IME", createIME(env.get()));
+    env->setModuleExport("ScanInput", createScanInput(env.get()));
+    env->setModuleExport("Shell", createShell(env.get()));
+    env->setModuleExport("Update", createUpdate(env.get()));
+
+    env->setModuleExportDone(JS_UNDEFINED, exportList);
+    return 0;
+}
+
+DEF_MODULE_LOAD_FUNC_EXPORT(langningchen, module_init, exportList)
+
+extern "C" JQUICK_EXPORT void custom_init_jsapis()
+{
+    registerCModuleLoader("langningchen", &langningchen_module_load);
+}
