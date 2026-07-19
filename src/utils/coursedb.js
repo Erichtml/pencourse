@@ -52,3 +52,52 @@ export async function deleteCourseById(id) {
     return false;
   }
 }
+
+// 保存换课记录。
+export async function saveSwap(swap) {
+  const d = await getDb();
+  if (!d) return false;
+  try {
+    const c1 = Number(swap.course1_id);
+    const c2 = Number(swap.course2_id);
+    const tp = esc(swap.type);
+    const wn = Number(swap.week_num);
+    const ca = esc(swap.created_at);
+    await d.execute("INSERT INTO swaps(course1_id, course2_id, type, week_num, created_at) VALUES(" + c1 + ", " + c2 + ", '" + tp + "', " + wn + ", '" + ca + "')");
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 加载本周有效的临时换课记录。
+export async function loadActiveSwaps(currentWeekNum) {
+  const d = await getDb();
+  if (!d) return [];
+  try {
+    const res = await d.select('SELECT id, course1_id, course2_id, type, week_num, created_at FROM swaps WHERE type = "temporary" AND week_num = ' + Number(currentWeekNum));
+    const rows = (res && res.data) ? res.data : [];
+    return rows.map(r => ({
+      id: Number(r.id),
+      course1_id: Number(r.course1_id),
+      course2_id: Number(r.course2_id),
+      type: r.type,
+      week_num: Number(r.week_num),
+      created_at: r.created_at
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
+// 删除过期的临时换课记录。
+export async function cleanupExpiredSwaps(currentWeekNum) {
+  const d = await getDb();
+  if (!d) return false;
+  try {
+    await d.execute('DELETE FROM swaps WHERE type = "temporary" AND week_num < ' + Number(currentWeekNum));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}

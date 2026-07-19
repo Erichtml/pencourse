@@ -47,7 +47,12 @@
              :key="course.id"
              class="course-card"
              :style="{ backgroundColor: course.color }"
-             @click="showCourseDetail(course)">
+             @click="handleCardClick(course)">
+          <div class="select-hit-area" @click="onCircleClick(course.id, $event)">
+            <div :class="isSelected(course.id) ? 'select-circle select-circle-selected' : 'select-circle'">
+              <text v-if="isSelected(course.id)" class="check-icon">✓</text>
+            </div>
+          </div>
           <text class="course-time">{{ getCourseCardTime(course) }}</text>
           <div class="course-middle">
             <text class="course-name">{{ course.name }}</text>
@@ -57,8 +62,12 @@
       </div>
     </scroller>
     
-    <div class="fab" @click="openAddDialog">
-      <text class="fab-text">+</text>
+    <div class="swap-fab" @click="openSwapTypeDialog" v-if="!swapMode">
+      <text class="swap-fab-text">⇌</text>
+    </div>
+
+    <div class="fab" :class="{ 'fab-delete': hasSelected, 'fab-swap': swapMode }" @click="handleFabClick">
+      <text class="fab-text">{{ swapMode ? '✓' : (hasSelected ? '−' : '+') }}</text>
     </div>
     
     <div class="dialog-mask" v-if="showAddDialog" @click="closeAddDialog">
@@ -240,12 +249,54 @@
         </div>
       </div>
     </div>
+
+    <div class="dialog-mask" v-if="showDeleteConfirm" @click="cancelDelete">
+      <div class="dialog confirm-dialog" @click.stop>
+        <text class="dialog-title">确认删除</text>
+        <div class="confirm-content">
+          <text class="confirm-text">确定要删除选中的 {{ selectedIds.length }} 门课程吗？</text>
+        </div>
+        <div class="dialog-actions">
+          <div class="cancel-btn" @click="cancelDelete">
+            <text class="btn-text-gray">取消</text>
+          </div>
+          <div class="delete-confirm-btn" @click="confirmBatchDelete">
+            <text class="btn-text-white">删除</text>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-mask" v-if="showSwapTypeDialog" @click="cancelSwapType">
+      <div class="dialog confirm-dialog" @click.stop>
+        <text class="dialog-title confirm-dialog-title">选择换课类型</text>
+        <div class="swap-type-list">
+          <div class="swap-type-item" @click="selectSwapType('permanent')">
+            <text class="swap-type-text">永久换课</text>
+          </div>
+          <text class="swap-type-hint">修改后永久保存</text>
+          <div class="swap-type-item" @click="selectSwapType('temporary')">
+            <text class="swap-type-text">临时换课</text>
+          </div>
+          <text class="swap-type-hint">仅本周有效，下周自动恢复</text>
+        </div>
+        <div class="dialog-actions confirm-dialog-actions">
+          <div class="cancel-btn" @click="cancelSwapType">
+            <text class="btn-text-gray">取消</text>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-card" v-if="showToast">
+      <text class="toast-text">{{ toastText }}</text>
+    </div>
   </div>
 </template>
 
 <script>
 import { getGlobalModule, isKeyboardAvailable } from '../../utils/keyboard';
-import { loadAllCourses, saveCourse, deleteCourseById } from '../../utils/coursedb.js';
+import { loadAllCourses, saveCourse, deleteCourseById, saveSwap, loadActiveSwaps, cleanupExpiredSwaps } from '../../utils/coursedb.js';
 import { getShowLocation, getShowDebug } from '../../utils/settings.js';
 
 export default {
@@ -289,10 +340,22 @@ export default {
       showTimePicker: false,
       pickerField: '',
       pickerHour: '08',
-      pickerMinute: '00'
+      pickerMinute: '00',
+      selectedIds: [],
+      showDeleteConfirm: false,
+      swapMode: false,
+      swapType: 'permanent',
+      showSwapTypeDialog: false,
+      originalCourses: [],
+      activeSwaps: [],
+      showToast: false,
+      toastText: ''
     };
   },
   computed: {
+    hasSelected() {
+      return this.selectedIds.length > 0;
+    },
     currentWeek() {
       const now = new Date();
       const year = now.getFullYear();
@@ -329,6 +392,7 @@ export default {
     this.loadShowLocation('mounted');
     this.initKeyboard();
     this.startShowLocationPoll();
+    this.loadAndApplySwaps();
   },
 
   beforeDestroy() {
@@ -345,7 +409,7 @@ export default {
         timeMode: 'slot',
         customStart: '',
         customEnd: '',
-        color: '#4CAF50',
+        color: '#FF6B6B',
         location: ''
       };
     },
@@ -371,9 +435,12 @@ export default {
     loadCourses() {
       const self = this;
       loadAllCourses().then(function (list) {
-        self.courses = Array.isArray(list) ? list : [];
+        const arr = Array.isArray(list) ? list : [];
+        self.originalCourses = JSON.parse(JSON.stringify(arr));
+        self.courses = arr;
       }).catch(function () {
         self.courses = [];
+        self.originalCourses = [];
       });
     },
     
@@ -643,6 +710,207 @@ export default {
       return `${m}分`;
     },
 
+    isSelected(id) {
+      return this.selectedIds.indexOf(id) >= 0;
+    },
+    onCircleClick(id, event) {
+      if (event && event.stopPropagation) {
+        event.stopPropagation();
+      }
+      this.toggleSelect(id);
+    },
+    toggleSelect(id) {
+      const idx = this.selectedIds.indexOf(id);
+      if (idx >= 0) {
+        this.selectedIds.splice(idx, 1);
+      } else {
+        if (this.swapMode && this.selectedIds.length >= 2) {
+          this.showToastHint('换课最多选择2个课程');
+          return;
+        }
+        this.selectedIds.push(id);
+      }
+    },
+    showToastHint(text) {
+      this.toastText = text;
+      this.showToast = true;
+      if (this._toastTimer) {
+        clearTimeout(this._toastTimer);
+      }
+      this._toastTimer = setTimeout(() => {
+        this.showToast = false;
+      }, 1500);
+    },
+    handleCardClick(course) {
+      if (this.swapMode || this.hasSelected) {
+        this.toggleSelect(course.id);
+      } else {
+        this.showCourseDetail(course);
+      }
+    },
+    handleFabClick() {
+      if (this.swapMode) {
+        if (this.selectedIds.length === 2) {
+          if (this.swapType === 'permanent') {
+            this.doPermanentSwap();
+          } else {
+            this.doTemporarySwap();
+          }
+        } else {
+          this.cancelSwapMode();
+        }
+      } else if (this.hasSelected) {
+        this.showDeleteConfirm = true;
+      } else {
+        this.openAddDialog();
+      }
+    },
+    cancelDelete() {
+      this.showDeleteConfirm = false;
+    },
+    confirmBatchDelete() {
+      const idsToDelete = this.selectedIds.slice();
+      for (let i = 0; i < idsToDelete.length; i++) {
+        const id = idsToDelete[i];
+        this.courses = this.courses.filter(c => c.id !== id);
+        deleteCourseById(id);
+      }
+      this.selectedIds = [];
+      this.showDeleteConfirm = false;
+    },
+    getWeekNumber() {
+      const now = new Date();
+      const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    },
+    openSwapTypeDialog() {
+      if (this.selectedIds.length === 1) {
+        this.showToastHint('请选择2个课程进行换课');
+        return;
+      }
+      if (this.selectedIds.length > 2) {
+        this.showToastHint('请选择2个课程进行换课');
+        return;
+      }
+      this.showSwapTypeDialog = true;
+    },
+    cancelSwapType() {
+      this.showSwapTypeDialog = false;
+    },
+    selectSwapType(type) {
+      this.swapType = type;
+      this.showSwapTypeDialog = false;
+      if (this.selectedIds.length === 2) {
+        if (type === 'permanent') {
+          this.doPermanentSwap();
+        } else {
+          this.doTemporarySwap();
+        }
+      } else {
+        this.swapMode = true;
+        this.selectedIds = [];
+      }
+    },
+    cancelSwapMode() {
+      this.swapMode = false;
+      this.selectedIds = [];
+    },
+    async loadAndApplySwaps() {
+      const weekNum = this.getWeekNumber();
+      try {
+        await cleanupExpiredSwaps(weekNum);
+        const swaps = await loadActiveSwaps(weekNum);
+        this.activeSwaps = swaps || [];
+        this.applyTemporarySwaps();
+      } catch (e) {
+        console.error('load swaps error', e);
+      }
+    },
+    applyTemporarySwaps() {
+      if (this.activeSwaps.length === 0 || this.originalCourses.length === 0) return;
+      let swapped = JSON.parse(JSON.stringify(this.originalCourses));
+      const self = this;
+      for (let i = 0; i < this.activeSwaps.length; i++) {
+        const swap = this.activeSwaps[i];
+        const idx1 = swapped.findIndex(function (c) { return Number(c.id) === Number(swap.course1_id); });
+        const idx2 = swapped.findIndex(function (c) { return Number(c.id) === Number(swap.course2_id); });
+        if (idx1 >= 0 && idx2 >= 0) {
+          self.swapCourseContent(swapped[idx1], swapped[idx2]);
+        }
+      }
+      this.courses = swapped;
+    },
+    swapCourseContent(c1, c2) {
+      const tName = c1.name;
+      const tColor = c1.color;
+      const tLocation = c1.location;
+      c1.name = c2.name;
+      c1.color = c2.color;
+      c1.location = c2.location;
+      c2.name = tName;
+      c2.color = tColor;
+      c2.location = tLocation;
+    },
+    async doPermanentSwap() {
+      if (this.selectedIds.length !== 2) return;
+      const id1 = Number(this.selectedIds[0]);
+      const id2 = Number(this.selectedIds[1]);
+      try {
+        const all = await loadAllCourses();
+        const c1 = all.find(function (c) { return Number(c.id) === id1; });
+        const c2 = all.find(function (c) { return Number(c.id) === id2; });
+        if (!c1 || !c2) return;
+        const c1BeforeTime = { dayIndex: c1.dayIndex, slot: c1.slot, timeMode: c1.timeMode, customStart: c1.customStart, customEnd: c1.customEnd };
+        const c2BeforeTime = { dayIndex: c2.dayIndex, slot: c2.slot, timeMode: c2.timeMode, customStart: c2.customStart, customEnd: c2.customEnd };
+        this.swapCourseContent(c1, c2);
+        c1.dayIndex = c1BeforeTime.dayIndex;
+        c1.slot = c1BeforeTime.slot;
+        c1.timeMode = c1BeforeTime.timeMode;
+        c1.customStart = c1BeforeTime.customStart;
+        c1.customEnd = c1BeforeTime.customEnd;
+        c2.dayIndex = c2BeforeTime.dayIndex;
+        c2.slot = c2BeforeTime.slot;
+        c2.timeMode = c2BeforeTime.timeMode;
+        c2.customStart = c2BeforeTime.customStart;
+        c2.customEnd = c2BeforeTime.customEnd;
+        await saveCourse(c1);
+        await saveCourse(c2);
+        this.originalCourses = JSON.parse(JSON.stringify(all));
+        this.courses = JSON.parse(JSON.stringify(all));
+        this.applyTemporarySwaps();
+      } catch (e) {
+        console.error('permanent swap error', e);
+      }
+      this.selectedIds = [];
+      this.swapMode = false;
+    },
+    async doTemporarySwap() {
+      if (this.selectedIds.length !== 2) return;
+      const id1 = Number(this.selectedIds[0]);
+      const id2 = Number(this.selectedIds[1]);
+      const weekNum = this.getWeekNumber();
+      const now = new Date();
+      const createdAt = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      const swapRecord = {
+        course1_id: id1,
+        course2_id: id2,
+        type: 'temporary',
+        week_num: weekNum,
+        created_at: createdAt
+      };
+      try {
+        await saveSwap(swapRecord);
+        this.activeSwaps.push(swapRecord);
+        this.applyTemporarySwaps();
+      } catch (e) {
+        console.error('save swap error', e);
+      }
+      this.selectedIds = [];
+      this.swapMode = false;
+    },
     openAddDialog() {
       this.newCourse = this.createEmptyCourse();
       this.editMode = false;
@@ -668,7 +936,7 @@ export default {
         timeMode: c.timeMode || 'slot',
         customStart: c.customStart || '',
         customEnd: c.customEnd || '',
-        color: c.color || '#4CAF50',
+        color: c.color || '#FF6B6B',
         location: c.location || ''
       };
       this.editMode = true;
@@ -1002,7 +1270,7 @@ export default {
 
 .course-time {
   position: absolute;
-  left: 12px;
+  left: 62px;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.95);
   line-height: 18px;
@@ -1035,6 +1303,42 @@ export default {
   opacity: 0.7;
 }
 
+.select-hit-area {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  bottom: 0px;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+}
+
+.select-circle-selected {
+  background-color: #FFFFFF;
+  border-color: #FFFFFF;
+}
+
+.check-icon {
+  font-size: 14px;
+  color: #333333;
+  font-weight: bold;
+  line-height: 14px;
+}
+
 .fab {
   position: absolute;
   right: 16px;
@@ -1047,6 +1351,34 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 2px 2px 6px #999999;
+}
+
+.fab-delete {
+  background-color: #F44336;
+}
+
+.fab-swap {
+  background-color: #FF9800;
+}
+
+.swap-fab {
+  position: absolute;
+  right: 72px;
+  bottom: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background-color: #FF9800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 6px #999999;
+}
+
+.swap-fab-text {
+  font-size: 22px;
+  color: #FFFFFF;
+  font-weight: bold;
 }
 
 .fab-text {
@@ -1437,5 +1769,108 @@ export default {
 
 .picker-active-text {
   color: #FFFFFF;
+}
+
+.confirm-dialog {
+  height: auto;
+  min-height: 200px;
+  max-height: 264px;
+  justify-content: flex-start;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  min-width: 340px;
+}
+
+.confirm-dialog-title {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.confirm-dialog-actions {
+  margin-top: 4px;
+}
+
+.confirm-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.confirm-text {
+  font-size: 13px;
+  color: #333333;
+  text-align: center;
+}
+
+.delete-confirm-btn {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background-color: #F44336;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.swap-type-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  min-height: 0;
+}
+
+.swap-type-item {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-color: #F5F5F5;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.swap-type-text {
+  font-size: 13px;
+  color: #333333;
+}
+
+.swap-type-hint {
+  font-size: 10px;
+  color: #999999;
+  margin-top: -2px;
+  margin-bottom: 4px;
+  margin-left: 10px;
+}
+
+.toast-card {
+  position: fixed;
+  left: 50%;
+  bottom: 100px;
+  width: 180px;
+  margin-left: -90px;
+  background-color: #333333;
+  opacity: 0.5;
+  border-radius: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-left: 20px;
+  padding-right: 20px;
+  z-index: 200;
+}
+
+.toast-text {
+  font-size: 14px;
+  color: #FFFFFF;
+  text-align: center;
 }
 </style>

@@ -21,6 +21,7 @@ export function getDb() {
       await d.open(DB_PATH);
       await d.execute('CREATE TABLE IF NOT EXISTS courses(id INTEGER PRIMARY KEY, data TEXT)');
       await d.execute('CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT)');
+      await d.execute('CREATE TABLE IF NOT EXISTS swaps(id INTEGER PRIMARY KEY AUTOINCREMENT, course1_id INTEGER, course2_id INTEGER, type TEXT, week_num INTEGER, created_at TEXT)');
       return d;
     } catch (e) {
       return null;
