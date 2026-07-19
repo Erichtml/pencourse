@@ -61,9 +61,9 @@
       <text class="fab-text">+</text>
     </div>
     
-    <div class="dialog-mask" v-if="showAddDialog" @click="showAddDialog = false">
+    <div class="dialog-mask" v-if="showAddDialog" @click="closeAddDialog">
       <div class="dialog" @click.stop>
-        <text class="dialog-title">添加课程</text>
+        <text class="dialog-title">{{ editMode ? '编辑课程' : '添加课程' }}</text>
         
         <scroller class="dialog-scroller">
           <div class="dialog-content">
@@ -160,10 +160,10 @@
         </scroller>
         
         <div class="dialog-actions">
-          <div class="cancel-btn" @click="showAddDialog = false">
+          <div class="cancel-btn" @click="closeAddDialog">
             <text class="btn-text-gray">取消</text>
           </div>
-          <div class="confirm-btn" @click="addCourse">
+          <div class="confirm-btn" @click="saveEditCourse">
             <text class="btn-text-white">确定</text>
           </div>
         </div>
@@ -180,15 +180,18 @@
             <text class="detail-value">{{ getCourseTimeText(selectedCourse) }}</text>
           </div>
 
-          <div class="detail-item" v-if="showLocation && selectedCourse.location">
+          <div class="detail-item" v-if="showLocation">
             <text class="detail-label">地点：</text>
-            <text class="detail-value">{{ selectedCourse.location }}</text>
+            <text class="detail-value" :class="selectedCourse.location ? '' : 'location-empty'">{{ selectedCourse.location || '未添加地点' }}</text>
           </div>
         </div>
         
         <div class="dialog-actions">
           <div class="delete-btn" @click="deleteCourse">
             <text class="btn-text-gray">删除</text>
+          </div>
+          <div class="cancel-btn" @click="editCourse">
+            <text class="btn-text-gray">编辑</text>
           </div>
           <div class="confirm-btn" @click="showDetailDialog = false">
             <text class="btn-text-white">关闭</text>
@@ -274,6 +277,7 @@ export default {
       showLocation: false,
       showDebug: false,
       debugText: 'init',
+      editMode: false,
       colors: [
         '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
         '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
@@ -641,7 +645,35 @@ export default {
 
     openAddDialog() {
       this.newCourse = this.createEmptyCourse();
+      this.editMode = false;
       this.timeError = '';
+      this.showAddDialog = true;
+    },
+
+    closeAddDialog() {
+      this.showAddDialog = false;
+      this.editMode = false;
+      this.newCourse = this.createEmptyCourse();
+      this.timeError = '';
+    },
+
+    editCourse() {
+      if (!this.selectedCourse) return;
+      const c = this.selectedCourse;
+      this.newCourse = {
+        id: c.id,
+        name: c.name || '',
+        dayIndex: c.dayIndex,
+        slot: c.slot || 1,
+        timeMode: c.timeMode || 'slot',
+        customStart: c.customStart || '',
+        customEnd: c.customEnd || '',
+        color: c.color || '#4CAF50',
+        location: c.location || ''
+      };
+      this.editMode = true;
+      this.timeError = '';
+      this.showDetailDialog = false;
       this.showAddDialog = true;
     },
     
@@ -744,6 +776,38 @@ export default {
       this.newCourse = this.createEmptyCourse();
       this.timeError = '';
       this.showAddDialog = false;
+    },
+
+    saveEditCourse() {
+      if (this.editMode) {
+        if (!this.newCourse.name) return;
+        if (this.newCourse.timeMode === 'custom' && !this.validateCustomTime()) return;
+        this.normalizeCustomTimes();
+        const courseData = {
+          id: this.newCourse.id,
+          name: this.newCourse.name,
+          dayIndex: this.newCourse.dayIndex,
+          color: this.newCourse.color,
+          timeMode: this.newCourse.timeMode,
+          location: this.showLocation ? (this.newCourse.location || '') : ''
+        };
+        if (this.newCourse.timeMode === 'slot') {
+          courseData.slot = this.newCourse.slot;
+        } else {
+          courseData.customStart = this.newCourse.customStart;
+          courseData.customEnd = this.newCourse.customEnd;
+        }
+        const idx = this.courses.findIndex(function (c) { return c.id === courseData.id; });
+        if (idx >= 0) {
+          this.courses.splice(idx, 1, courseData);
+        } else {
+          this.courses.push(courseData);
+        }
+        saveCourse(courseData);
+        this.closeAddDialog();
+      } else {
+        this.addCourse();
+      }
     },
     
     deleteCourse() {

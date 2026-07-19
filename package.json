@@ -1,7 +1,7 @@
 {
   "name": "schedule",
   "appid": "8001783830813775",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "hello",
   "icon": "assets/images/schedule.png",
   "quickjs": {

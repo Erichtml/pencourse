@@ -9,7 +9,7 @@
         <div class="logo-card">
           <image class="app-icon" src="assets/images/schedule.png" />
           <text class="app-name">课程表</text>
-          <text class="version">版本 1.1.0</text>
+          <text class="version">版本 1.2.0</text>
         </div>
 
         <div class="info-list">
