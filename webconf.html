@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>课程表在线配置工具</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --primary-color: #4A90E2;
+  --primary-hover: #357ABD;
+  --secondary-color: #F8F9FA;
+  --secondary-hover: #E9ECEF;
+  --danger-color: #FF6B6B;
+  --danger-hover: #FA5252;
+  --text-main: #212529;
+  --text-muted: #6C757D;
+  --bg-color: #F4F7F6;
+  --card-bg: #FFFFFF;
+  --border-color: #DEE2E6;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 24px rgba(0,0,0,0.12);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+[v-cloak] {
+  display: none;
+}
+
+/* Header */
+.app-header {
+  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+  color: white;
+  padding: 30px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-content h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.header-content p {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white !important;
+  color: var(--primary-color) !important;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Main Content */
+.main-content {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 900px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+}
+
+.card h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .half {
+  flex: 1;
+}
+
+/* Switches */
+.switch-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.switch-group label:first-child {
+  margin-bottom: 0;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section-header h2 {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+/* Buttons */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  background-color: #A0C3E8;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-hover);
+}
+
+.btn-icon {
+  background: transparent;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.btn-icon:hover {
+  background: var(--secondary-hover);
+}
+
+.text-danger {
+  color: var(--danger-color);
+}
+
+/* Table */
+.day-tabs {
+  display: flex;
+  background-color: #f1f3f5;
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.day-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.day-tab:hover {
+  color: var(--text-main);
+}
+
+.day-tab.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.mode-switcher-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.mode-switcher {
+  display: flex;
+  background-color: #f1f3f5;
+  border-radius: 20px;
+  padding: 4px;
+  width: 240px;
+}
+.mode-option {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 16px;
+  transition: all 0.2s;
+}
+.mode-option.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.courses-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.courses-table th,
+.courses-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.courses-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.courses-table td {
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.fw-600 {
+  font-weight: 600;
+}
+
+.color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Badges */
+.badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-all {
+  background-color: #E3F2FD;
+  color: #1976D2;
+}
+
+.badge-odd {
+  background-color: #FFF3E0;
+  color: #F57C00;
+}
+
+.badge-even {
+  background-color: #E8F5E9;
+  color: #388E3C;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.btn-close:hover {
+  color: var(--text-main);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Radio Group */
+.radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: normal !important;
+  color: var(--text-main) !important;
+}
+
+/* Color Picker Grid */
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.active::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  font-size: 16px;
+}
+
+/* Loading Overlay */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+</style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <header class="app-header">
+      <div class="header-content">
+        <h1>课程表配置导出工具</h1>
+        <p>配置您的课程与设置，并生成可导入设备的 db 文件。</p>
+        <p style="margin-top: 8px; font-size: 13px; opacity: 0.9;">交流群: 983145071 (QQ)</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);" @click="showAboutModal = true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          关于
+        </button>
+        <button class="btn-primary export-btn" @click="exportDB">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          导出数据库 (course_app.db)
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="card settings-section">
+        <h2>全局设置</h2>
+        <div class="settings-grid">
+          <div class="form-group switch-group">
+            <label>显示课程地点</label>
+            <label class="switch">
+              <input type="checkbox" v-model="settings.showLocation">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          
+          <div class="form-group switch-group">
+            <label>开启单双周(A/B周)</label>
+            <label class="switch">
+              <input type="checkbox" v-model="settings.enableOddEven">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label>开学日期</label>
+            <input type="date" v-model="settings.semesterStart" class="form-control">
+          </div>
+        </div>
+      </section>
+
+      <section class="card courses-section">
+        <div class="section-header">
+          <h2>课程列表 ({{ courses.length }})</h2>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn-danger" v-if="selectedCourses.length > 0" @click="deleteSelected">
+              删除选中 ({{ selectedCourses.length }})
+            </button>
+            <button class="btn-secondary" @click="openAddModal">
+              + 添加课程
+            </button>
+          </div>
+        </div>
+        
+        <div class="day-tabs">
+          <div v-for="(day, index) in weekDays" :key="index"
+               class="day-tab" :class="{ active: currentDayIndex === index }"
+               @click="currentDayIndex = index">
+            {{ day }}
+          </div>
+        </div>
+        
+        <div class="table-responsive" v-if="dayCourses.length > 0">
+          <table class="courses-table">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">
+                  <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll">
+                </th>
+                <th>课程名称</th>
+                <th>节次/时间</th>
+                <th>周数类型</th>
+                <th>地点</th>
+                <th>颜色</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(course, index) in dayCourses" :key="index">
+                <td style="text-align: center;">
+                  <input type="checkbox" :value="course.id" v-model="selectedCourses">
+                </td>
+                <td class="fw-600">{{ course.name }}</td>
+                <td>{{ getTimeDisplay(course) }}</td>
+                <td>
+                  <span class="badge" :class="getWeekTypeClass(course.weekType)">
+                    {{ getWeekTypeName(course.weekType) }}
+                  </span>
+                </td>
+                <td>{{ course.location || '-' }}</td>
+                <td>
+                  <div class="color-dot" :style="{ backgroundColor: course.color }"></div>
+                </td>
+                <td>
+                  <button class="btn-icon text-danger" @click="deleteCourse(course.id)" title="删除">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="empty-state">
+          <p>今天没有课程，享受空闲时光吧！</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Add Course Modal -->
+    <div class="modal-backdrop" v-if="showModal" @click.self="closeAddModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>添加课程</h3>
+          <button class="btn-close" @click="closeAddModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>课程名称 *</label>
+            <input type="text" v-model="form.name" class="form-control" placeholder="如: 高等数学">
+          </div>
+          
+          <div class="form-group" v-if="settings.showLocation">
+            <label>上课地点</label>
+            <input type="text" v-model="form.location" class="form-control" placeholder="可选，如: 教学楼A-101">
+          </div>
+          
+          <div class="form-group" v-if="settings.enableOddEven">
+            <label>周数类型</label>
+            <select v-model="form.weekType" class="form-control">
+              <option value="all">全部周</option>
+              <option value="odd">仅单周 (A周)</option>
+              <option value="even">仅双周 (B周)</option>
+            </select>
+          </div>
+          
+          <div class="form-group mode-switcher-container">
+            <div class="mode-switcher">
+              <div class="mode-option" :class="{ active: form.timeMode === 'slot' }" @click="form.timeMode = 'slot'">
+                节次模式
+              </div>
+              <div class="mode-option" :class="{ active: form.timeMode === 'custom' }" @click="form.timeMode = 'custom'">
+                自定义时间
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group" v-if="form.timeMode === 'slot'">
+            <label>选择节次</label>
+            <select v-model="form.slot" class="form-control">
+              <option v-for="slot in timeSlots" :value="slot.id">{{ slot.text.replace('\n', ' ') }}</option>
+            </select>
+          </div>
+          
+          <div class="form-row" v-if="form.timeMode === 'custom'">
+            <div class="form-group half">
+              <label>开始时间</label>
+              <input type="time" v-model="form.customStart" class="form-control">
+            </div>
+            <div class="form-group half">
+              <label>结束时间</label>
+              <input type="time" v-model="form.customEnd" class="form-control">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>课程颜色</label>
+            <div class="color-picker-grid">
+              <div v-for="color in defaultColors" 
+                   class="color-swatch" 
+                   :style="{ backgroundColor: color }"
+                   :class="{ active: form.color === color }"
+                   @click="form.color = color">
+              </div>
+            </div>
+            <div class="custom-color-input" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+              <input type="color" v-model="form.color" class="color-native" style="width: 40px; height: 40px; border: none; padding: 0; cursor: pointer;">
+              <input type="text" v-model="form.color" class="form-control" placeholder="#HEX" style="flex: 1;">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="closeAddModal">取消</button>
+          <button class="btn-primary" @click="saveCourse" :disabled="!isFormValid">保存课程</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exporting Loading Overlay -->
+    <div class="modal-backdrop" v-if="isExporting">
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p style="color: white; margin-top: 16px; font-weight: 500;">数据库生成中，请稍候片刻...</p>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-backdrop" v-if="showSuccessModal" @click.self="showSuccessModal = false">
+      <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+          <h3>导出成功 🎉</h3>
+          <button class="btn-close" @click="showSuccessModal = false">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align: center; padding: 30px 20px;">
+          <p style="font-size: 16px; margin-bottom: 15px;">您的配置文件已成功下载！</p>
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <p style="color: var(--primary-color); font-weight: 600;">请将下载好的 course_app.db 文件放入设备的以下目录：</p>
+            <p style="font-family: monospace; font-size: 18px; margin-top: 10px; font-weight: bold; color: #333;">/userdisk/Favorite/</p>
+          </div>
+          <p style="color: #888; font-size: 13px; margin-top: 15px;">放好后，重启设备或重新打开应用即可生效。</p>
+        </div>
+        <div class="modal-footer" style="justify-content: center;">
+          <button class="btn-primary" @click="showSuccessModal = false" style="width: 100%;">我知道了</button>
+        </div>
+      </div>
+    </div>
+    <!-- About Modal -->
+    <div class="modal-backdrop" v-if="showAboutModal" @click.self="showAboutModal = false">
+      <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+          <h3>关于</h3>
+          <button class="btn-close" @click="showAboutModal = false">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align: center; padding: 40px 20px;">
+          <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <h2 style="font-size: 20px; font-weight: 600; color: #212529; margin-bottom: 8px;">课程表 WebConf 工具</h2>
+          <p style="color: #6c757d; font-size: 14px; margin-bottom: 24px;">版本号 1.0.0</p>
+          <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 13px; color: #495057; line-height: 1.6;">
+            <p><strong>功能简介：</strong>本工具为单页面应用，专为课程表小程序配套设计。所有配置与转换均在本地浏览器中进行，安全、无后端依赖。</p>
+            <p style="margin-top: 10px;"><strong>作者：</strong>Erichtml</p>
+            <p style="margin-top: 10px;"><strong>交流群：</strong>983145071 (QQ)</p>
+            <p style="margin-top: 10px;"><strong>技术构建：</strong>Vue.js (CDN) + sql.js (WebAssembly)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.14/vue.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <script>
+// 确保能找到 sql-wasm.wasm 文件
+const config = {
+  locateFile: filename => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${filename}`
+};
+
+new Vue({
+  el: '#app',
+  data() {
+    return {
+      settings: {
+        showLocation: false,
+        enableOddEven: false,
+        semesterStart: ''
+      },
+      courses: [],
+      showModal: false,
+      showAboutModal: false,
+      isExporting: false,
+      showSuccessModal: false,
+      form: {
+        name: '',
+        timeMode: 'custom',
+        slot: 1,
+        customStart: '08:00',
+        customEnd: '09:40',
+        location: '',
+        color: '#AED6F1',
+        weekType: 'all'
+      },
+      weekDays: ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
+      timeSlots: [
+        { id: 1, text: '第1节\n08:00-08:45' },
+        { id: 2, text: '第2节\n08:55-09:40' },
+        { id: 3, text: '第3节\n10:00-10:45' },
+        { id: 4, text: '第4节\n10:55-11:40' },
+        { id: 5, text: '第5节\n14:00-14:45' },
+        { id: 6, text: '第6节\n14:55-15:40' },
+        { id: 7, text: '第7节\n16:00-16:45' },
+        { id: 8, text: '第8节\n16:55-17:40' },
+        { id: 9, text: '第9节\n19:00-19:45' },
+        { id: 10, text: '第10节\n19:55-20:40' }
+      ],
+      defaultColors: [
+        '#AED6F1', '#85C1E9', '#45B7D1', '#4ECDC4',
+        '#96CEB4', '#98D8C8', '#82E0AA', '#FFEAA7',
+        '#F7DC6F', '#F8C471', '#F1948A', '#FF6B6B',
+        '#BB8FCE', '#DDA0DD'
+      ],
+      currentDayIndex: 0,
+      selectedCourses: [],
+      nextId: 1
+    };
+  },
+  computed: {
+    isFormValid() {
+      if (!this.form.name.trim()) return false;
+      if (this.form.timeMode === 'custom' && (!this.form.customStart || !this.form.customEnd)) return false;
+      return true;
+    },
+    isAllSelected() {
+      if (this.dayCourses.length === 0) return false;
+      return this.dayCourses.every(c => this.selectedCourses.includes(c.id));
+    },
+    dayCourses() {
+      return this.courses
+        .filter(c => c.dayIndex === this.currentDayIndex)
+        .sort((a, b) => {
+          if (a.timeMode === 'slot' && b.timeMode === 'slot') return a.slot - b.slot;
+          if (a.timeMode === 'slot' && b.timeMode === 'custom') return -1;
+          if (a.timeMode === 'custom' && b.timeMode === 'slot') return 1;
+          return a.customStart.localeCompare(b.customStart);
+        });
+    }
+  },
+  methods: {
+    getNextAvailableColor() {
+      if (!this.courses || this.courses.length === 0) return this.defaultColors[0];
+      
+      const usedColors = this.courses.map(c => c.color);
+      const unusedColors = this.defaultColors.filter(c => !usedColors.includes(c));
+      
+      if (unusedColors.length > 0) {
+        return unusedColors[0];
+      } else {
+        const colorCounts = {};
+        this.defaultColors.forEach(c => colorCounts[c] = 0);
+        usedColors.forEach(c => {
+          if (colorCounts[c] !== undefined) colorCounts[c]++;
+        });
+        
+        let minColor = this.defaultColors[0];
+        let minCount = colorCounts[minColor];
+        
+        for (const color of this.defaultColors) {
+          if (colorCounts[color] < minCount) {
+            minCount = colorCounts[color];
+            minColor = color;
+          }
+        }
+        return minColor;
+      }
+    },
+    getEmptyForm() {
+      return {
+        name: '',
+        timeMode: 'custom',
+        slot: 1,
+        customStart: '08:00',
+        customEnd: '09:40',
+        location: '',
+        color: this.getNextAvailableColor(),
+        weekType: 'all'
+      };
+    },
+    openAddModal() {
+      this.form = this.getEmptyForm();
+      this.showModal = true;
+    },
+    closeAddModal() {
+      this.showModal = false;
+    },
+    saveCourse() {
+      if (!this.isFormValid) return;
+      
+      const newCourse = {
+        id: new Date().getTime() + this.nextId++,
+        name: this.form.name.trim(),
+        dayIndex: this.currentDayIndex,
+        timeMode: this.form.timeMode,
+        slot: parseInt(this.form.slot),
+        customStart: this.form.customStart,
+        customEnd: this.form.customEnd,
+        location: this.form.location.trim(),
+        color: this.form.color,
+        weekType: this.form.weekType
+      };
+      
+      this.courses.push(newCourse);
+      this.closeAddModal();
+    },
+    deleteCourse(id) {
+      if (confirm('确定要删除该课程吗？')) {
+        this.courses = this.courses.filter(c => c.id !== id);
+        this.selectedCourses = this.selectedCourses.filter(sid => sid !== id);
+      }
+    },
+    deleteSelected() {
+      if (confirm(`确定要删除选中的 ${this.selectedCourses.length} 门课程吗？`)) {
+        this.courses = this.courses.filter(c => !this.selectedCourses.includes(c.id));
+        this.selectedCourses = [];
+      }
+    },
+    toggleSelectAll() {
+      if (this.isAllSelected) {
+        this.selectedCourses = this.selectedCourses.filter(id => !this.dayCourses.find(c => c.id === id));
+      } else {
+        const newSelected = new Set(this.selectedCourses);
+        this.dayCourses.forEach(c => newSelected.add(c.id));
+        this.selectedCourses = Array.from(newSelected);
+      }
+    },
+    getDayName(index) {
+      return this.weekDays[index] || '';
+    },
+    getTimeDisplay(course) {
+      if (course.timeMode === 'slot') {
+        return `第${course.slot}节`;
+      } else {
+        return `${course.customStart} - ${course.customEnd}`;
+      }
+    },
+    getWeekTypeName(type) {
+      if (type === 'odd') return '单周(A周)';
+      if (type === 'even') return '双周(B周)';
+      return '全部周';
+    },
+    getWeekTypeClass(type) {
+      if (type === 'odd') return 'badge-odd';
+      if (type === 'even') return 'badge-even';
+      return 'badge-all';
+    },
+    async exportDB() {
+      this.isExporting = true;
+      try {
+        // 强制延迟一点时间以便展示优雅的加载动画
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        const SQL = await initSqlJs(config);
+        const db = new SQL.Database();
+        
+        // 建表
+        db.run('CREATE TABLE IF NOT EXISTS courses(id INTEGER PRIMARY KEY, data TEXT)');
+        db.run('CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT)');
+        db.run('CREATE TABLE IF NOT EXISTS swaps(id INTEGER PRIMARY KEY AUTOINCREMENT, course1_id INTEGER, course2_id INTEGER, type TEXT, week_num INTEGER, created_at TEXT)');
+        
+        // 插入课程
+        const insertCourse = db.prepare('INSERT INTO courses (id, data) VALUES (?, ?)');
+        this.courses.forEach((course, i) => {
+          insertCourse.run([course.id, JSON.stringify(course)]);
+        });
+        insertCourse.free();
+        
+        // 插入设置
+        const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
+        insertSetting.run(['showLocation', this.settings.showLocation ? 'true' : '']);
+        insertSetting.run(['enableOddEven', this.settings.enableOddEven ? 'true' : '']);
+        if (this.settings.semesterStart) {
+          insertSetting.run(['semesterStart', this.settings.semesterStart.replace(/-/g, '/')]); // Miniapp uses YYYY/MM/DD internally
+        }
+        insertSetting.free();
+        
+        // 导出
+        const data = db.export();
+        const buffer = new Uint8Array(data);
+        const blob = new Blob([buffer], {type: 'application/octet-stream'});
+        
+        // 下载
+        const a = document.createElement('a');
+        a.href = window.URL.createObjectURL(blob);
+        a.download = 'course_app.db';
+        a.onclick = () => {
+          setTimeout(() => {
+            window.URL.revokeObjectURL(a.href);
+          }, 1500);
+        };
+        a.click();
+        
+        this.isExporting = false;
+        this.showSuccessModal = true;
+      } catch (e) {
+        this.isExporting = false;
+        console.error('Export failed:', e);
+        alert('导出失败，请检查网络（需要加载sql.js）或控制台报错。');
+      }
+    }
+  }
+});
+
+</script>
+</body>
+</html>
