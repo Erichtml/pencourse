@@ -1,4 +1,5 @@
 ## QQ交流群：983145071
+## 在线配置课程表：https://erichtml.github.io/webconf/
 
 # 简介
 一款为 HaaS / Falcon 平台打造的轻量级课程表小程序，支持课程持久化存储和周视图展示。
